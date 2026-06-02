@@ -1,5 +1,6 @@
 package com.example.ebook
 
+import android.graphics.PathMeasure
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -21,13 +22,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -39,12 +40,15 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.example.ebook.ui.theme.EbookTheme
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
 enum class ScrollDirection { Up, Down }
+enum class AnimationPhase { Scrolling, Spiral }
 
 private val BookWidth = 90.dp
 private val BookHeight = 140.dp
@@ -58,28 +62,22 @@ class MainActivity : ComponentActivity() {
         setContent {
             EbookTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    val books = listOf(
-                        R.drawable.front_cover,
-                        R.drawable.the_law_of_human_nature_front_cover,
-                        R.drawable.the_mountain_is_you_front_cover,
-                        R.drawable.the_picture_of_dorian_gray_front_cover,
-                        R.drawable.without_a_trace_front_cover,
-                        R.drawable.front_cover,
-                        R.drawable.the_law_of_human_nature_front_cover,
-                        R.drawable.the_mountain_is_you_front_cover,
-                        R.drawable.the_picture_of_dorian_gray_front_cover,
-                        R.drawable.without_a_trace_front_cover,
-                        R.drawable.front_cover,
-                        R.drawable.the_law_of_human_nature_front_cover,
-                        R.drawable.the_mountain_is_you_front_cover,
-                        R.drawable.the_picture_of_dorian_gray_front_cover,
-                        R.drawable.without_a_trace_front_cover,
-                        R.drawable.the_picture_of_dorian_gray_front_cover
-                    )
+                    val books1 = column1Books
+                    val books2 = column2Books
+                    val books3 = column3Books
 
                     val columnStep = BookWidth + ColumnGap
-
+                    val columnCount = 2
                     var containerSize by remember { mutableStateOf(IntSize.Zero) }
+                    var phase by remember { mutableStateOf(AnimationPhase.Scrolling) }
+                    var columnsFinished by remember { mutableIntStateOf(0) }
+
+                    LaunchedEffect(columnsFinished) {
+                        if (columnsFinished >= columnCount) {
+                            phase = AnimationPhase.Spiral
+                        }
+                    }
+
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -112,7 +110,9 @@ class MainActivity : ComponentActivity() {
                                 bookWidth = BookWidth,
                                 bookHeight = BookHeight,
                                 gap = BookGap,
-                                images = books
+                                books = books1,
+                                phase = phase,
+                                onScrollComplete = { columnsFinished++ }
                             )
                             PathFollower(
                                 containerSize = containerSize,
@@ -124,7 +124,9 @@ class MainActivity : ComponentActivity() {
                                 bookWidth = BookWidth,
                                 bookHeight = BookHeight,
                                 gap = BookGap,
-                                images = books.shuffled()
+                                books = books2,
+                                phase = phase,
+                                onScrollComplete = { columnsFinished++ }
                             )
                             PathFollower(
                                 containerSize = containerSize,
@@ -136,20 +138,25 @@ class MainActivity : ComponentActivity() {
                                 bookWidth = BookWidth,
                                 bookHeight = BookHeight,
                                 gap = BookGap,
-                                images = books
+                                books = books3,
+                                phase = phase,
+                                onScrollComplete = { columnsFinished++ }
                             )
-                            PathFollower(
-                                containerSize = containerSize,
-                                xOffset = columnStep * 3,
-                                duration = 3000,
-                                startProgress = 0.4f,
-                                endProgress = 0.8f,
-                                direction = ScrollDirection.Up,
-                                bookWidth = BookWidth,
-                                bookHeight = BookHeight,
-                                gap = BookGap,
-                                images = books.shuffled()
-                            )
+//                            PathFollower(
+//                                containerSize = containerSize,
+//                                xOffset = columnStep * 3,
+//                                duration = 3000,
+//                                scrollRepetitions = 3,
+//                                startProgress = 0.4f,
+//                                endProgress = 0.8f,
+//                                direction = ScrollDirection.Up,
+//                                bookWidth = BookWidth,
+//                                bookHeight = BookHeight,
+//                                gap = BookGap,
+//                                images = shuffled2,
+//                                phase = AnimationPhase.Spiral,
+//                                onScrollComplete = { columnsFinished++ }
+//                            )
                         }
                     }
                 }
@@ -162,62 +169,145 @@ class MainActivity : ComponentActivity() {
 fun PathFollower(
     containerSize: IntSize,
     xOffset: Dp = 0.dp,
-    images: List<Int>,
+    books: List<Book>,
     duration: Int,
     startProgress: Float = 0f,
     endProgress: Float = 1f,
     direction: ScrollDirection = ScrollDirection.Down,
     bookWidth: Dp,
     bookHeight: Dp,
-    gap: Dp
+    gap: Dp,
+    phase: AnimationPhase,
+    onScrollComplete: () -> Unit
 ) {
     val density = LocalDensity.current
-    val progress = remember { Animatable(startProgress) }
+    val scrollProgress = remember { Animatable(startProgress) }
+    val spiralProgresses = remember(books.size) { List(books.size) { Animatable(0f) } }
 
     val xOffsetPx = with(density) { xOffset.toPx().roundToInt() }
     val bookWidthPx = with(density) { bookWidth.toPx() }
+    val stepPx = with(density) { (bookHeight + gap).toPx() }
+    val bookHPx = with(density) { bookHeight.toPx() }
+    val loop = stepPx * books.size
 
     LaunchedEffect(Unit) {
-        progress.animateTo(
+        scrollProgress.animateTo(
             endProgress,
-            animationSpec = infiniteRepeatable(
-                tween(durationMillis = duration, easing = FastOutSlowInEasing),
-                RepeatMode.Restart
-            )
+            animationSpec = tween(durationMillis = duration, easing = FastOutSlowInEasing)
         )
+        onScrollComplete()
+    }
+
+    LaunchedEffect(phase) {
+        if (phase == AnimationPhase.Spiral) {
+            spiralProgresses.forEachIndexed { index, progress ->
+                launch {
+                    val order = books[index].slot ?: index
+                    delay(order * 100L)
+                    progress.animateTo(
+                        targetValue = 1f,
+                        animationSpec = tween(
+                            durationMillis = 6000,
+                            easing = FastOutSlowInEasing
+                        )
+                    )
+                }
+            }
+        }
     }
 
     Canvas(modifier = Modifier.fillMaxSize()) {
-        val centerX = xOffsetPx + bookWidthPx / 2
-        val path = Path().apply {
-            moveTo(centerX, 0f)
-            lineTo(centerX, containerSize.height.toFloat())
+        val cx = xOffsetPx + bookWidthPx / 2
+        val path = androidx.compose.ui.graphics.Path().apply {
+            moveTo(cx, 0f)
+            lineTo(cx, containerSize.height.toFloat())
         }
-        drawPath(
-            path = path,
-            color = Color.Transparent,
-            style = Stroke(width = 4.dp.toPx())
-        )
+        drawPath(path, Color.Transparent, style = Stroke(width = 4.dp.toPx()))
+
+        if (phase == AnimationPhase.Spiral) {
+            books.forEachIndexed { index, book ->
+                val rawY = (index * stepPx + endProgress * loop) % loop
+                val y = when (direction) {
+                    ScrollDirection.Down -> rawY
+                    ScrollDirection.Up -> loop - rawY
+                }
+                val scrollX = xOffsetPx.toFloat()
+                val scrollY = y - bookHPx
+                val spiralEndX = book.spiralAnimationX
+                val spiralEndY = book.spiralAnimationY
+
+                if (spiralEndX != null && spiralEndY != null) {
+                    val controlPointX = book.controlPointX ?: (scrollX + 300f)
+                    val controlPointY = book.controlPointY ?: (scrollY - 400f)
+                    val controlPoint2X = book.controlPoint2X ?: (scrollX + 150f)
+                    val controlPoint2Y = book.controlPoint2Y ?: (scrollY - 200f)
+
+                    val spiralPath = androidx.compose.ui.graphics.Path().apply {
+                        moveTo(scrollX, scrollY)
+                        cubicTo(
+                            controlPointX, controlPointY,
+                            controlPoint2X, controlPoint2Y,
+                            spiralEndX, spiralEndY
+                        )
+                    }
+                    drawPath(spiralPath, Color.Transparent, style = Stroke(width = 4.dp.toPx()))
+                }
+            }
+        }
     }
 
-    val stepPx = with(density) { (bookHeight + gap).toPx() }
-    val bookHPx = with(density) { bookHeight.toPx() }
-    val loop = stepPx * images.size
+    books.forEachIndexed { index, book ->
+        val scrollValue =
+            if (phase == AnimationPhase.Spiral) endProgress else scrollProgress.value
 
-    images.forEachIndexed { index, imageRes ->
-        val rawY = (index * stepPx + progress.value * loop) % loop
+        val rawY = (index * stepPx + scrollValue * loop) % loop
         val y = when (direction) {
             ScrollDirection.Down -> rawY
             ScrollDirection.Up -> loop - rawY
         }
-        val yOffset = (y - bookHPx).roundToInt()
+        val scrollX = xOffsetPx.toFloat()
+        val scrollY = y - bookHPx
+
+        val displayX: Float
+        val displayY: Float
+
+        val spiralEndX = book.spiralAnimationX
+        val spiralEndY = book.spiralAnimationY
+
+        if (phase == AnimationPhase.Spiral && spiralEndX != null && spiralEndY != null) {
+            val t = spiralProgresses[index].value
+            val controlPointX = book.controlPointX ?: (scrollX + 300f)
+            val controlPointY = book.controlPointY ?: (scrollY - 400f)
+            val controlPoint2X = book.controlPoint2X ?: (scrollX + 150f)
+            val controlPoint2Y = book.controlPoint2Y ?: (scrollY - 200f)
+            val path = remember(scrollX, scrollY, spiralEndX, spiralEndY) {
+                android.graphics.Path().apply {
+                    moveTo(scrollX, scrollY)
+                    cubicTo(
+                        controlPointX, controlPointY,
+                        controlPoint2X, controlPoint2Y,
+                        spiralEndX, spiralEndY
+                    )
+                }
+            }
+
+            val pathMeasure = remember(path) { PathMeasure(path, false) }
+            val pos = remember { FloatArray(2) }
+            pathMeasure.getPosTan(pathMeasure.length * t, pos, null)
+
+            displayX = pos[0]
+            displayY = pos[1]
+        } else {
+            displayX = scrollX
+            displayY = scrollY
+        }
 
         Image(
-            painter = painterResource(id = imageRes),
-            contentDescription = null,
+            painter = painterResource(id = book.frontCover),
+            contentDescription = book.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .offset { IntOffset(xOffsetPx, yOffset) }
+                .offset { IntOffset(displayX.roundToInt(), displayY.roundToInt()) }
                 .size(bookWidth, bookHeight)
         )
     }
