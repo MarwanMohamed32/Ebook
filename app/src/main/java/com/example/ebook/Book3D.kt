@@ -14,13 +14,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.google.android.filament.View
 import dev.romainguy.kotlin.math.Float3
 import io.github.sceneview.SceneView
+import io.github.sceneview.SurfaceType
+import io.github.sceneview.createView
 import io.github.sceneview.material.setBaseColorMap
 import io.github.sceneview.node.ModelNode
 import io.github.sceneview.rememberEngine
 import io.github.sceneview.rememberModelInstance
 import io.github.sceneview.rememberModelLoader
+import io.github.sceneview.rememberView
 import io.github.sceneview.texture.ImageTexture
 
 @Composable
@@ -32,6 +36,12 @@ fun Book3D(
 ) {
     val context = LocalContext.current
     val engine = rememberEngine()
+    val view = rememberView(engine) {
+        createView(engine).apply {
+            dithering = View.Dithering.NONE
+            ambientOcclusionOptions = ambientOcclusionOptions.apply { enabled = false }
+        }
+    }
     val modelLoader = rememberModelLoader(engine)
     val model = rememberModelInstance(modelLoader, "book.glb")
 
@@ -117,7 +127,10 @@ fun Book3D(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Transparent),
+            surfaceType = SurfaceType.TextureSurface,
+            isOpaque = false,
             engine = engine,
+            view = view,
             modelLoader = modelLoader,
             cameraManipulator = null,
             onGestureListener = null,
@@ -126,8 +139,8 @@ fun Book3D(
             model?.let {
                 ModelNode(
                     modelInstance = it,
-                    rotation = Float3(x = 90.0f, y = 0.0f, z = 90.0f),
-                    scaleToUnits = 0.25f,
+                    rotation = Float3(x = -180.0f, y = 0.0f, z = 90.0f),
+                    scaleToUnits = 1.5f,
                     autoAnimate = true
                 )
             }
