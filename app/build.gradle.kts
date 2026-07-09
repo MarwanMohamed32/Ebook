@@ -31,8 +31,10 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        // Matches the JVM target of dependencies such as kotlin-math / sceneview (built for
+        // JVM 21); a lower target can't inline their `inline` operators (e.g. Float3 `+`).
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
     buildFeatures {
         compose = true

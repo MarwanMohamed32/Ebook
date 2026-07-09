@@ -4,6 +4,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -28,6 +34,20 @@ class MainActivity : ComponentActivity() {
                     containerColor = Color.White
                 ) { innerPadding ->
                     var spiralTriggered by remember { mutableStateOf(false) }
+
+                    val bookProgress by rememberInfiniteTransition(label = "bookPath")
+                        .animateFloat(
+                            initialValue = 0f,
+                            targetValue = 1f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(
+                                    durationMillis = 3000,
+                                    easing = FastOutSlowInEasing,
+                                ),
+                                repeatMode = RepeatMode.Reverse,
+                            ),
+                            label = "bookProgress",
+                        )
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -37,11 +57,14 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier,
                             spiralTriggered = spiralTriggered,
                         )
-                    Book3D(
-                        R.drawable.front_cover,
-                        R.drawable.back_cover,
-                        R.drawable.spine_cover
-                    )
+                        BookScene {
+                            Book3D(
+                                R.drawable.front_cover,
+                                R.drawable.back_cover,
+                                R.drawable.spine_cover,
+                                progress = bookProgress,
+                            )
+                        }
                         SplashBottomSheet(
                             modifier = Modifier.align(Alignment.BottomCenter),
                             onContinue = { spiralTriggered = true },
