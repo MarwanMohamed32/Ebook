@@ -15,17 +15,6 @@ import io.github.sceneview.SceneScope
 import io.github.sceneview.material.setBaseColorMap
 import io.github.sceneview.rememberModelInstance
 import io.github.sceneview.texture.ImageTexture
-/**
- * The actual 3D book.
- *
- * Loads `book.glb`, maps the given cover art onto its `front_cover`, `back_cover` and `spine`
- * materials, and adds the model to the surrounding [BookScene]. Call it inside a [BookScene]
- * content block.
- *
- * [progress] (`0f..1f`) animates the book along [path]: it arcs outward toward the viewer while
- * turning from the front cover, through the spine at the midpoint, to the back cover. [position]
- * offsets the whole path, so several books can share one scene.
- */
 @Composable
 fun SceneScope.Book3D(
     @DrawableRes frontCover: Int,
@@ -54,18 +43,12 @@ fun SceneScope.Book3D(
     }
 
     model?.let {
-        // The parent node carries the path: it translates along the outward curve and yaws about
-        // the vertical axis (front → spine → back), while the child keeps the model's own upright
-        // base orientation. Splitting them avoids folding the yaw into the (x, z) base Euler.
-        Node(
-            position = position + path.positionAt(progress),
-            rotation = Float3(y = path.yawAt(progress)),
-        ) {
+        Node(position = position + path.positionAt(progress)) {
             ModelNode(
                 modelInstance = it,
                 centerOrigin = Float3(0f),
                 rotation = Float3(x = -180.0f, y = 0.0f, z = 90.0f),
-                scaleToUnits = 1.5f,
+                scaleToUnits = 1.3f,
                 autoAnimate = true,
             )
         }

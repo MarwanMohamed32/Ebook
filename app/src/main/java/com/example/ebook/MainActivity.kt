@@ -41,7 +41,7 @@ class MainActivity : ComponentActivity() {
                             targetValue = 1f,
                             animationSpec = infiniteRepeatable(
                                 animation = tween(
-                                    durationMillis = 3000,
+                                    durationMillis = 1500,
                                     easing = FastOutSlowInEasing,
                                 ),
                                 repeatMode = RepeatMode.Reverse,
@@ -62,6 +62,7 @@ class MainActivity : ComponentActivity() {
                                 R.drawable.front_cover,
                                 R.drawable.back_cover,
                                 R.drawable.spine_cover,
+                                path = BookPath(startX = -0.8f, endX = 0.8f),
                                 progress = bookProgress,
                             )
                         }
