@@ -1,4 +1,4 @@
-package com.example.ebook
+package com.example.ebook.splash
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -20,34 +20,32 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-
+import com.example.ebook.ui.theme.SplashSurface
+private val FadeHeight = 64.dp
+private val SheetHeight = 180.dp
 @Composable
-fun SplashBottomSheet(modifier: Modifier, onContinue: () -> Unit) {
-    val sheetColor = Color(0xFF101418)
-    Column(
-        modifier = modifier.fillMaxWidth()
-    ) {
+fun SplashBottomSection(
+    onContinue: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
+                .height(FadeHeight)
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            sheetColor,
-                        ),
+                        colors = listOf(Color.Transparent, SplashSurface),
                     ),
                 ),
         )
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(180.dp)
-                .background(sheetColor)
+                .height(SheetHeight)
+                .background(SplashSurface)
                 .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
                 text = "Explore Popular Categories Books From Shelf",
@@ -55,19 +53,19 @@ fun SplashBottomSheet(modifier: Modifier, onContinue: () -> Unit) {
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.W400,
                 lineHeight = 30.sp,
-                color = Color.White
+                color = Color.White,
             )
             Spacer(modifier = Modifier.padding(vertical = 24.dp))
             Button(
                 onClick = onContinue,
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                elevation = null
+                elevation = null,
             ) {
                 Text(
                     text = "Continue",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.W400,
-                    textDecoration = TextDecoration.Underline
+                    textDecoration = TextDecoration.Underline,
                 )
             }
         }

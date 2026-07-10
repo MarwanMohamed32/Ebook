@@ -9,3 +9,11 @@ val Pink80 = Color(0xFFEFB8C8)
 val Purple40 = Color(0xFF6650a4)
 val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
+
+/**
+ * The splash screen's dark surface, shared by the shelf backdrop and the bottom sheet.
+ *
+ * Deliberately outside the [androidx.compose.material3.ColorScheme]: the splash art is fixed, so
+ * dynamic colour must not repaint it.
+ */
+val SplashSurface = Color(0xFF101418)

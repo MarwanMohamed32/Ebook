@@ -1,4 +1,4 @@
-package com.example.ebook
+package com.example.ebook.scene
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,7 +16,6 @@ import io.github.sceneview.rememberEngine
 import io.github.sceneview.rememberModelLoader
 import io.github.sceneview.rememberRenderer
 import io.github.sceneview.rememberView
-
 @Composable
 fun BookScene(
     modifier: Modifier = Modifier,
